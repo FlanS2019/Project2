@@ -172,6 +172,7 @@
     <ClInclude Include="transform.h" />
     <ClInclude Include="tree.h" />
     <ClInclude Include="vector3.h" />
+    <ClInclude Include="wave.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="animationModel.cpp" />
@@ -211,6 +212,7 @@
     <ClCompile Include="title.cpp" />
     <ClCompile Include="Transform.cpp" />
     <ClCompile Include="tree.cpp" />
+    <ClCompile Include="wave.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\common.hlsl">
