@@ -47,8 +47,7 @@ void Game::Init() {
 	Manager::AddGameObject<Particle>()->SetPosition({ 8.0f,1.0f,1.0f });
 	//Manager::AddGameObject<Shadow>()->SetPosition({ 0.0f,0.01f,0.0f });
 
-	Manager::AddGameObject<Wave>()->SetPosition({ 0.0f, 0.3f, 4.0f });
-
+	Manager::AddGameObject<Wave>()->SetPosition({ 0.0f, 1.0f, 4.0f });
 }
 void Game::Uninit() {
 

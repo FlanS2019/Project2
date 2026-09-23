@@ -4,27 +4,22 @@
 #include "transform.h"
 #include "DirectXTex.h"
 
-namespace
-{
-	// 波の見た目調整用パラメータ
-	constexpr int   kDiv = 20;                 // 分割数（多いほど波が滑らか）
-	constexpr int   kVertexNum = (kDiv + 1) * (kDiv + 1);
-	constexpr int   kIndexNum = kDiv * kDiv * 6;
+constexpr int   kDiv = 20;                 // 分割数（多いほど波が滑らか）
+constexpr int   kVertexNum = (kDiv + 1) * (kDiv + 1);
+constexpr int   kIndexNum = kDiv * kDiv * 6;
 
-	constexpr float kWidth = 8.0f;                // 波エリアの幅（X）
-	constexpr float kDepth = 8.0f;                // 波エリアの奥行き（Z）
+constexpr float kWidth = 8.0f;                // 波エリアの幅（X）
+constexpr float kDepth = 8.0f;                // 波エリアの奥行き（Z）
 
-	constexpr float kAmplitude = 0.15f;               // 波の高さ
-	constexpr float kWaveLengthX = 1.5f;                // X方向の波の細かさ
-	constexpr float kWaveLengthZ = 2.0f;                // Z方向の波の細かさ
-	constexpr float kSpeed = 1.5f;                // 波が流れる速さ
-}
+constexpr float kAmplitude = 0.15f;               // 波の高さ
+constexpr float kWaveLengthX = 1.5f;                // X方向の波の細かさ
+constexpr float kWaveLengthZ = 2.0f;                // Z方向の波の細かさ
+constexpr float kSpeed = 1.5f;                // 波が流れる速さ
 
 void Wave::Init()
 {
 	m_Layer = 1;
 
-	// ----- インデックスバッファ（1マスを三角形2つに分割） -----
 	UINT index[kIndexNum];
 	int idx = 0;
 	for (int z = 0; z < kDiv; z++)
@@ -55,7 +50,6 @@ void Wave::Init()
 	isd.pSysMem = index;
 	Renderer::GetDevice()->CreateBuffer(&ibd, &isd, &m_IndexBuffer);
 
-	// ----- 頂点バッファ（毎フレームMapして波を動かすのでDYNAMIC） -----
 	D3D11_BUFFER_DESC bd{};
 	bd.Usage = D3D11_USAGE_DYNAMIC;
 	bd.ByteWidth = sizeof(VERTEX_3D) * kVertexNum;
@@ -64,16 +58,21 @@ void Wave::Init()
 
 	Renderer::GetDevice()->CreateBuffer(&bd, NULL, &m_VertexBuffer);
 
-	// ----- シェーダー（Box/Enemyと同じ既存のunlitTextureシェーダーを流用） -----
 	Renderer::CreateVertexShader(&m_VertexShader, &m_VertexLayout, "unlitTextureVS.cso");
 	Renderer::CreatePixelShader(&m_PixelShader, "unlitTexturePS.cso");
 
-	// ----- テクスチャ（波に映す画像） -----
 	TexMetadata metadata{};
 	ScratchImage image{};
 	LoadFromWICFile(L"asset\\texture\\water.jpg", WIC_FLAGS_NONE, &metadata, image);
 	CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(), image.GetImageCount(), metadata, &m_Texture);
 	assert(m_Texture);
+
+	// カリング無効（両面表示）のラスタライザステート ※前回抜けていた部分
+	D3D11_RASTERIZER_DESC rasterizerDesc{};
+	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	rasterizerDesc.CullMode = D3D11_CULL_NONE;
+	rasterizerDesc.DepthClipEnable = TRUE;
+	Renderer::GetDevice()->CreateRasterizerState(&rasterizerDesc, &m_RasterizerState);
 
 	Update(0.0);
 }
@@ -86,6 +85,7 @@ void Wave::Uninit()
 	if (m_VertexShader) { m_VertexShader->Release(); m_VertexShader = nullptr; }
 	if (m_PixelShader) { m_PixelShader->Release();  m_PixelShader = nullptr; }
 	if (m_Texture) { m_Texture->Release();      m_Texture = nullptr; }
+	if (m_RasterizerState) { m_RasterizerState->Release(); m_RasterizerState = nullptr; }
 
 	GameObject::Uninit();
 }
@@ -107,7 +107,6 @@ void Wave::Update(double deltaTime)
 			float px = (x / (float)kDiv - 0.5f) * kWidth;
 			float pz = (z / (float)kDiv - 0.5f) * kDepth;
 
-			// 2方向のサイン波を合成して水面っぽい揺れにする
 			float py = sinf(px * kWaveLengthX + m_Time * kSpeed) * kAmplitude
 				+ sinf(pz * kWaveLengthZ + m_Time * kSpeed * 0.8f) * kAmplitude * 0.5f;
 
@@ -139,6 +138,8 @@ void Wave::Draw()
 	material.TextureEnable = TRUE;
 	Renderer::SetMaterial(material);
 
+	Renderer::GetDeviceContext()->RSSetState(m_RasterizerState);
+
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
 	Renderer::GetDeviceContext()->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);
@@ -147,6 +148,8 @@ void Wave::Draw()
 	Renderer::GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	Renderer::GetDeviceContext()->DrawIndexed(kIndexNum, 0, 0);
+
+	Renderer::GetDeviceContext()->RSSetState(nullptr);
 
 	GameObject::Draw();
 }

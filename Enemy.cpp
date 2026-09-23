@@ -4,6 +4,7 @@
 #include "DirectXTex.h"
 #include "modelRenderer.h"
 #include "input.h"
+#include "terrainHeight.h"
 
 
 void Enemy::Init()
@@ -42,7 +43,10 @@ void Enemy::Update(double deltaTime)
 {
     float dt = static_cast<float>(deltaTime);
 
-  
+    // 地形の凸凹に合わせてY座標を調整
+    Vector3 pos = GetPosition();
+    pos.y = GetTerrainHeight(pos.x, pos.z);
+    SetPosition(pos);
 
     GameObject::Update(dt);
 }

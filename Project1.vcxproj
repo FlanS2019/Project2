@@ -168,6 +168,7 @@
     <ClInclude Include="sky.h" />
     <ClInclude Include="sprite.h" />
     <ClInclude Include="system_timer.h" />
+    <ClInclude Include="terrainHeight.h" />
     <ClInclude Include="title.h" />
     <ClInclude Include="transform.h" />
     <ClInclude Include="tree.h" />
@@ -209,6 +210,7 @@
     <ClCompile Include="sky.cpp" />
     <ClCompile Include="sprite.cpp" />
     <ClCompile Include="system_timer.cpp" />
+    <ClCompile Include="terrainHeight.cpp" />
     <ClCompile Include="title.cpp" />
     <ClCompile Include="Transform.cpp" />
     <ClCompile Include="tree.cpp" />

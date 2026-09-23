@@ -4,6 +4,7 @@
 #include "DirectXTex.h"
 #include "modelRenderer.h"
 #include "input.h"
+#include "terrainHeight.h"
 
 
 void Box::Init()
@@ -16,7 +17,7 @@ void Box::Init()
 
     modelRender->Load("asset\\Model\\box.obj");
 
-    // �V�F�[�_�[�Ǎ�
+    // シェーダー読込
     Renderer::CreateVertexShader(&m_VertexShader, &m_VertexLayout,
         "unlitTextureVS.cso");
 
@@ -42,25 +43,28 @@ void Box::Update(double deltaTime)
 {
     float dt = static_cast<float>(deltaTime);
 
-
+    // 地形の凸凹に合わせてY座標を調整
+    Vector3 pos = GetPosition();
+    pos.y = GetTerrainHeight(pos.x, pos.z);
+    SetPosition(pos);
 
     GameObject::Update(dt);
 }
 void Box::Draw()
 {
-    // �C���v�b�g���C�A�E�g�ݒ�
+    // インプットレイアウト設定
     Renderer::GetDeviceContext()->IASetInputLayout(m_VertexLayout);
 
-    // �V�F�[�_�[�ݒ�
+    // シェーダー設定
     Renderer::GetDeviceContext()->VSSetShader(m_VertexShader, NULL, 0);
     Renderer::GetDeviceContext()->PSSetShader(m_PixelShader, NULL, 0);
 
-    // �}�g���N�X�ݒ� (TransformComponent���烏�[���h�s����擾)
+    // マトリクス設定 (TransformComponentからワールド行列を取得)
     TransformComponent* transform = GetComponent<TransformComponent>();
     DirectX::XMMATRIX world = transform->GetWorldMatrix();
     Renderer::SetWorldMatrix(world);
 
-    GameObject::Draw();//�p������Draw�i�j���Ăяo�����ƂŁA
-    //Player�N���X��Draw()����ModelRenderer�N���X��Draw()���Ăяo�����悤�ɂȂ�B
+    GameObject::Draw();//継承元のDraw（）を呼び出すことで、
+    //Playerクラスの Draw()内でModelRendererクラスのDraw()も呼び出されるようになる。
 
 }

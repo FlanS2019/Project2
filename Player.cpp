@@ -16,6 +16,7 @@
 #include "shadow.h"
 #include "animationModel.h"
 #include "modelRenderer.h"
+#include "terrainHeight.h"
 
 void Player::Init()
 {
@@ -23,22 +24,22 @@ void Player::Init()
     TransformComponent* transform = GetComponent<TransformComponent>();
     transform->SetPosition({ 0.0f, 0.0f, 0.0f });
     transform->SetScale({ 0.01f, 0.01f, 0.01f });
-	transform->SetRotation({ 0.0f,90.0f, 0.0f });
-	//ModelRenderer* modelRender = AddComponent<ModelRenderer>(this);
+    transform->SetRotation({ 0.0f,90.0f, 0.0f });
+    //ModelRenderer* modelRender = AddComponent<ModelRenderer>(this);
  // 
  //   modelRender->Load("asset\\Model\\player.obj");
 
     m_AnimationModel = AddComponent<AnimationModel>(this);
-	m_AnimationModel->Load("asset\\Model\\Akai.fbx");
-	m_AnimationModel->LoadAnimation("asset\\Model\\Akai_Run.fbx", "Run");
+    m_AnimationModel->Load("asset\\Model\\Akai.fbx");
+    m_AnimationModel->LoadAnimation("asset\\Model\\Akai_Run.fbx", "Run");
     m_AnimationModel->LoadAnimation("asset\\Model\\Akai_Idle.fbx", "Idle");
-   
-	m_AnimationName = "Idle";
-	m_NextAnimationName = "Idle";
-	m_AnimationFrame = 0;
-	m_NextAnimationFrame = 0;
-	m_Blend = 0.0f;
-    
+
+    m_AnimationName = "Idle";
+    m_NextAnimationName = "Idle";
+    m_AnimationFrame = 0;
+    m_NextAnimationFrame = 0;
+    m_Blend = 0.0f;
+
     // シェーダー読込
     Renderer::CreateVertexShader(&m_VertexShader, &m_VertexLayout,
         "unlitTextureVS.cso");
@@ -49,51 +50,51 @@ void Player::Init()
     m_JumpSE->Load("asset\\audio\\wan.wav");
 
 
-	m_Child = Manager::AddGameObject<GameObject>();
+    m_Child = Manager::AddGameObject<GameObject>();
     m_Child->SetParent(this);
-	m_Child->SetPosition({ 10.0f, 50.1f, 0.0f });
+    m_Child->SetPosition({ 10.0f, 50.1f, 0.0f });
     ModelRenderer* childModelRender = m_Child->AddComponent<ModelRenderer>(m_Child);
     childModelRender->Load("asset\\Model\\box.obj");
 
-	m_Shadow = Manager::AddGameObject<Shadow>();
-	//m_Shadow->SetParent(this);
-	m_Shadow->SetPosition({ 0.0f, 0.0f, 0.0f });
-    m_Shadow->SetScale({0.05f,0.05f,0.05f});
+    m_Shadow = Manager::AddGameObject<Shadow>();
+    //m_Shadow->SetParent(this);
+    m_Shadow->SetPosition({ 0.0f, 0.0f, 0.0f });
+    m_Shadow->SetScale({ 0.05f,0.05f,0.05f });
 }
 
 void Player::Uninit()
 {
 
-	
+
 
     if (m_VertexShader) { m_VertexShader->Release(); m_VertexShader = nullptr; }
     if (m_PixelShader) { m_PixelShader->Release(); m_PixelShader = nullptr; }
     if (m_VertexLayout) { m_VertexLayout->Release(); m_VertexLayout = nullptr; }
 
-	GameObject::Uninit();
-   
+    GameObject::Uninit();
+
 }
 void Player::Update(double deltaTime)
 {
     float dt = static_cast<float>(deltaTime);
-    
-    
+
+
 
     // TransformComponentを取得して使う
     TransformComponent* transform = GetComponent<TransformComponent>();
-	Camera* camera = Manager::GetGameObject<Camera>();
+    Camera* camera = Manager::GetGameObject<Camera>();
 
 
     Vector3 olsPos = transform->GetPosition();
 
     Vector3 pos = transform->GetPosition();
-	Vector3 forward = camera->GetForward();
-	Vector3 right = camera->GetRight();
+    Vector3 forward = camera->GetForward();
+    Vector3 right = camera->GetRight();
 
-	forward.y = 0.0f; // 水平方向の移動にするためy成分を0に
-	forward.normalize(); // 正規化して単位ベクトルにする
-	right.y = 0.0f; // 水平方向の移動にするためy成分を0に
-	right.normalize(); // 正規化して単位ベクトルにする
+    forward.y = 0.0f; // 水平方向の移動にするためy成分を0に
+    forward.normalize(); // 正規化して単位ベクトルにする
+    right.y = 0.0f; // 水平方向の移動にするためy成分を0に
+    right.normalize(); // 正規化して単位ベクトルにする
 
 
     Vector3 moveDir{ 0.0f, 0.0f, 0.0f };
@@ -151,15 +152,15 @@ void Player::Update(double deltaTime)
     }
 
     //SetScale(GetScale().x+(1.0f-GetScale().x)*0.1f,);
-    
-    float x =   GetScale().x;
-    float y =   GetScale().y;
-    float z =   GetScale().z;
+
+    float x = GetScale().x;
+    float y = GetScale().y;
+    float z = GetScale().z;
 
     x += (1.0f - x) * 0.1f;
-    y += (1.0f - y) * 0.1f; 
+    y += (1.0f - y) * 0.1f;
     z += (1.0f - z) * 0.1f;
-   // SetScale({x,y,z});
+    // SetScale({x,y,z});
 
 
 
@@ -173,10 +174,12 @@ void Player::Update(double deltaTime)
     bool oldGround = m_Ground;
     m_Ground = false;
 
-    if (pos.y < 0.0f) 
-    { 
-        pos.y = 0.0f;
-        m_Velocity.y = 0.0f; 
+    // 地形の凸凹に合わせて接地判定をする（以前は Y < 0.0f の決め打ちだった）
+    float groundY = GetTerrainHeight(pos.x, pos.z);
+    if (pos.y < groundY)
+    {
+        pos.y = groundY;
+        m_Velocity.y = 0.0f;
         m_Ground = true;
     }
 
@@ -203,11 +206,8 @@ void Player::Update(double deltaTime)
             dir *= 1.5f - lenght;
             pos += dir;
         }
-        
-    } 
 
-
-
+    }
 
 
     auto boxs = Manager::GetGameObjects<Box>();
@@ -219,10 +219,10 @@ void Player::Update(double deltaTime)
         if (boxPos.x - boxScale.x < pos.x &&
             pos.x < boxPos.x + boxScale.x &&
             boxPos.z - boxScale.z < pos.z &&
-            pos.z < boxPos.z + boxScale.z) 
+            pos.z < boxPos.z + boxScale.z)
         {
-            if(boxPos.y+boxScale.y<pos.y&&
-                pos.y<boxPos.y+boxScale.y*2.0&& m_Velocity.y<0.0f)
+            if (boxPos.y + boxScale.y < pos.y &&
+                pos.y < boxPos.y + boxScale.y * 2.0 && m_Velocity.y < 0.0f)
             {
                 //UP
                 pos.y = boxPos.y + boxScale.y * 2.0f;
@@ -251,14 +251,13 @@ void Player::Update(double deltaTime)
     }
 
 
-    
     transform->SetPosition(pos);
 
 
     if (Input::GetKeyTrigger('F')) {
-		Bullet* bullet = Manager::AddGameObject<Bullet>();
-		bullet->SetPosition(pos);
-		bullet->SetVelocity(transform->GetForward() * 50.0f);
+        Bullet* bullet = Manager::AddGameObject<Bullet>();
+        bullet->SetPosition(pos);
+        bullet->SetVelocity(transform->GetForward() * 50.0f);
     }
 
 #ifdef _DEBUG
@@ -269,27 +268,25 @@ void Player::Update(double deltaTime)
         ("speed",
             &m_Speed, 0.5f, 500.0f, "%.2f");
 
-       
+
 
     }
     ImGui::End();
 
-  
-
-   
 
 #endif // DEBUG
 
     if (m_Ground) {
         m_MoveAnimation += m_Velocity.length() * dt;
         float ly = GetScale().y;
-        ly += sinf(m_MoveAnimation*3.0f)*0.03f;
-       // SetScale({ GetScale().x,ly,GetScale().z});
+        ly += sinf(m_MoveAnimation * 3.0f) * 0.03f;
+        // SetScale({ GetScale().x,ly,GetScale().z});
     }
 
-   
+
+    // 影も地形の高さに合わせる
     Vector3 shadowPos = pos;
-	shadowPos.y = 0.1f;
+    shadowPos.y = GetTerrainHeight(pos.x, pos.z) + 0.1f;
     m_Shadow->SetPosition(shadowPos);
 
 
@@ -315,18 +312,13 @@ void Player::Update(double deltaTime)
     m_AnimationFrame++;
     m_NextAnimationFrame++;
 
-	m_Blend += 0.01f;
+    m_Blend += 0.01f;
 
-    if (m_Blend > 1.0f){
+    if (m_Blend > 1.0f) {
         m_Blend = 1.0f;
     }
 
-
-
-
-
     GameObject::Update(deltaTime);
-
 
 }
 
@@ -338,12 +330,12 @@ void Player::Draw()
 
     // TransformComponentからワールド行列を取得
     TransformComponent* transform = GetComponent<TransformComponent>();
-    XMMATRIX world = transform->GetWorldMatrix();  
+    XMMATRIX world = transform->GetWorldMatrix();
     Renderer::SetWorldMatrix(world);
 
     m_AnimationModel->Update(
         m_AnimationName.c_str(), m_AnimationFrame,
-        m_NextAnimationName.c_str(),m_NextAnimationFrame,
+        m_NextAnimationName.c_str(), m_NextAnimationFrame,
         m_Blend);
 
     GameObject::Draw();
@@ -354,10 +346,10 @@ void Player::SetAnimation(const char* AnimationName)
     if (m_NextAnimationName != AnimationName)
     {
         m_AnimationName = m_NextAnimationName;
-		m_AnimationFrame = m_NextAnimationFrame;
+        m_AnimationFrame = m_NextAnimationFrame;
 
         m_NextAnimationName = AnimationName;
-		m_NextAnimationFrame = 0;
+        m_NextAnimationFrame = 0;
 
         m_Blend = 0.0f;
     }
