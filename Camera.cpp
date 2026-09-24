@@ -1,4 +1,4 @@
-#include "camera.h"
+﻿#include "camera.h"
 #include <DirectXMath.h>
 #include "main.h"
 #include "renderer.h"
@@ -6,6 +6,7 @@
 #include "manager.h"
 #include "transform.h"
 #include "input.h"
+#include <imgui.h>
 
 
 using namespace DirectX;
@@ -64,7 +65,7 @@ void Camera::Update(double deltaTime)
 		Vector3 forward = transform->GetForward();
 		Vector3 right = transform->GetRight();
 
-		float freeSpeed = 20.0f;
+		float freeSpeed = m_FreeSpeed;
 		if (Input::GetKeyPress(VK_SHIFT)) freeSpeed *= 3.0f; // Shiftで高速移動
 
 		if (Input::GetKeyPress('W')) m_FreePosition += forward * freeSpeed * dt;
@@ -105,6 +106,16 @@ void Camera::Update(double deltaTime)
 		m_FreePosition = position;
 		m_FreeRotation = rotation;
 	}
+
+#ifdef _DEBUG
+	ImGui::Begin("FreeCamera");
+	{
+		ImGui::Text("C : フリーカメラ ON/OFF (現在: %s)", s_FreeMode ? "ON" : "OFF");
+		ImGui::SliderFloat("Height", &m_FreePosition.y, -20.0f, 150.0f, "%.2f");
+		ImGui::SliderFloat("MoveSpeed", &m_FreeSpeed, 1.0f, 100.0f, "%.2f");
+	}
+	ImGui::End();
+#endif // _DEBUG
 
 	GameObject::Update(deltaTime);
 }

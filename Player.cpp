@@ -1,4 +1,4 @@
-#include "main.h"
+﻿#include "main.h"
 #include "manager.h"
 #include "player.h"
 #include "renderer.h"
@@ -19,8 +19,8 @@
 #include "terrainHeight.h"
 
 // Akaiモデルの原点（ピボット）が足元とズレているので、見た目だけ持ち上げる補正値
-// ※当たり判定・影の位置には影響しません。埋まって見える/浮いて見える場合はここを調整
-constexpr float kModelYOffset = 0.8f;
+// ※当たり判定・影の位置には影響しません。デバッグ中はImGuiのスライダーで調整可能
+static float g_ModelYOffset = 0.8f;
 
 void Player::Init()
 {
@@ -279,7 +279,8 @@ void Player::Update(double deltaTime)
         ("speed",
             &m_Speed, 0.5f, 500.0f, "%.2f");
 
-
+        // 地面への埋まり具合をリアルタイムで調整（見た目だけ、当たり判定には影響しません）
+        ImGui::SliderFloat("ModelYOffset", &g_ModelYOffset, -2.0f, 3.0f, "%.2f");
 
     }
     ImGui::End();
@@ -343,7 +344,7 @@ void Player::Draw()
     TransformComponent* transform = GetComponent<TransformComponent>();
 
     // 見た目だけ地面との埋まりを補正（ワールド空間で純粋にYだけ持ち上げる）
-    XMMATRIX world = transform->GetWorldMatrix() * XMMatrixTranslation(0.0f, kModelYOffset, 0.0f);
+    XMMATRIX world = transform->GetWorldMatrix() * XMMatrixTranslation(0.0f, g_ModelYOffset, 0.0f);
     Renderer::SetWorldMatrix(world);
 
     m_AnimationModel->Update(

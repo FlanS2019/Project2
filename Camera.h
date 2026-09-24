@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "vector3.h"
 #include "gameObject.h"
 #include "transform.h"
@@ -12,6 +12,7 @@ private:
 	static bool s_FreeMode;               // フリーカメラモード中かどうか
 	Vector3 m_FreePosition{ 0.0f, 20.0f, 30.0f }; // フリーモード時のカメラ座標
 	Vector3 m_FreeRotation{ 0.0f, -XM_PI, 0.0f }; // フリーモード時の回転(x:見上げ下げ, y:左右)
+	float m_FreeSpeed = 20.0f;            // フリーモード時の移動速度（ImGuiで調整可）
 
 
 public:
