@@ -15,6 +15,7 @@ private:
 	ID3D11PixelShader* m_PixelShader = nullptr;
 
 	ID3D11ShaderResourceView* m_Texture = nullptr;
+	ID3D11RasterizerState* m_RasterizerState = nullptr; // —¼–Ê•`‰æ—p
 
 public:
 	void Init();

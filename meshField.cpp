@@ -7,15 +7,14 @@
 #include "terrainHeight.h"
 #include <vector>
 
-constexpr int   kDiv = 40;    // 分割数（多いほど凹凸が滑らか）
-constexpr float kWidth = 120.0f; // 地形の幅（X）
-constexpr float kDepth = 120.0f; // 地形の奥行き（Z）
+constexpr int   kDiv = 40;
+constexpr float kWidth = 120.0f;
+constexpr float kDepth = 120.0f;
 
 void MeshField::Init()
 {
 	m_Layer = 1;
 
-	// ----- 頂点データ（GetTerrainHeightで高さを計算してそのまま焼き込む） -----
 	std::vector<VERTEX_3D> vertex((kDiv + 1) * (kDiv + 1));
 
 	for (int z = 0; z <= kDiv; z++)
@@ -31,13 +30,12 @@ void MeshField::Init()
 			vertex[i].Position = XMFLOAT3(px, py, pz);
 			vertex[i].Normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
 			vertex[i].Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-			// テクスチャを何度も繰り返して貼る（引き伸ばしでぼやけないように）
 			vertex[i].TexCoord = XMFLOAT2(x / (float)kDiv * 20.0f, z / (float)kDiv * 20.0f);
 		}
 	}
 
 	D3D11_BUFFER_DESC bd{};
-	bd.Usage = D3D11_USAGE_DEFAULT; // 地形は動かないのでDEFAULTでOK
+	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.ByteWidth = sizeof(VERTEX_3D) * (UINT)vertex.size();
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
@@ -45,7 +43,6 @@ void MeshField::Init()
 	sd.pSysMem = vertex.data();
 	Renderer::GetDevice()->CreateBuffer(&bd, &sd, &m_VertexBuffer);
 
-	// ----- インデックスデータ -----
 	std::vector<UINT> index(kDiv * kDiv * 6);
 	int idx = 0;
 	for (int z = 0; z < kDiv; z++)
@@ -77,18 +74,22 @@ void MeshField::Init()
 	isd.pSysMem = index.data();
 	Renderer::GetDevice()->CreateBuffer(&ibd, &isd, &m_IndexBuffer);
 
-	// ----- シェーダー -----
 	Renderer::CreateVertexShader(&m_VertexShader, &m_VertexLayout, "unlitTextureVS.cso");
 	Renderer::CreatePixelShader(&m_PixelShader, "unlitTexturePS.cso");
 
-	// ----- テクスチャ -----
 	TexMetadata metadata{};
 	ScratchImage image{};
 	LoadFromWICFile(L"asset\\texture\\jimen.jpg", WIC_FLAGS_NONE, &metadata, image);
 	CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(), image.GetImageCount(), metadata, &m_Texture);
 	assert(m_Texture);
 
-	// ----- BGM（元のMeshFieldにあった処理をそのまま引き継ぎ） -----
+	// 両面描画（前回Waveでやったのと同じ、裏向きで消える問題の対策）
+	D3D11_RASTERIZER_DESC rasterizerDesc{};
+	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	rasterizerDesc.CullMode = D3D11_CULL_NONE;
+	rasterizerDesc.DepthClipEnable = TRUE;
+	Renderer::GetDevice()->CreateRasterizerState(&rasterizerDesc, &m_RasterizerState);
+
 	Audio* bgm = AddComponent<Audio>(this);
 	bgm->Load("asset\\audio\\bgm.wav");
 	//bgm->Play(true);
@@ -102,6 +103,7 @@ void MeshField::Uninit()
 	if (m_VertexShader) { m_VertexShader->Release(); m_VertexShader = nullptr; }
 	if (m_PixelShader) { m_PixelShader->Release();  m_PixelShader = nullptr; }
 	if (m_Texture) { m_Texture->Release();      m_Texture = nullptr; }
+	if (m_RasterizerState) { m_RasterizerState->Release(); m_RasterizerState = nullptr; }
 
 	GameObject::Uninit();
 }
@@ -125,6 +127,8 @@ void MeshField::Draw()
 	material.TextureEnable = TRUE;
 	Renderer::SetMaterial(material);
 
+	Renderer::GetDeviceContext()->RSSetState(m_RasterizerState);
+
 	UINT stride = sizeof(VERTEX_3D);
 	UINT offset = 0;
 	Renderer::GetDeviceContext()->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);
@@ -132,6 +136,8 @@ void MeshField::Draw()
 	Renderer::GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	Renderer::GetDeviceContext()->DrawIndexed(m_IndexCount, 0, 0);
+
+	Renderer::GetDeviceContext()->RSSetState(nullptr);
 
 	GameObject::Draw();
 }

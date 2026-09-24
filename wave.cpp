@@ -3,18 +3,20 @@
 #include "renderer.h"
 #include "transform.h"
 #include "DirectXTex.h"
+#include "terrainHeight.h"
 
-constexpr int   kDiv = 20;                 // 分割数（多いほど波が滑らか）
-constexpr int   kVertexNum = (kDiv + 1) * (kDiv + 1);
-constexpr int   kIndexNum = kDiv * kDiv * 6;
+constexpr int   kDiv = 24;                 // 川の幅方向の分割数
+constexpr int   kLengthDiv = 60;                 // 川の長さ方向の分割数
+constexpr int   kVertexNum = (kDiv + 1) * (kLengthDiv + 1);
+constexpr int   kIndexNum = kDiv * kLengthDiv * 6;
 
-constexpr float kWidth = 8.0f;                // 波エリアの幅（X）
-constexpr float kDepth = 8.0f;                // 波エリアの奥行き（Z）
+constexpr float kWidth = 10.0f;               // 水面の幅
+constexpr float kLength = 110.0f;              // 水面の長さ（Z方向）
 
-constexpr float kAmplitude = 0.15f;               // 波の高さ
-constexpr float kWaveLengthX = 1.5f;                // X方向の波の細かさ
-constexpr float kWaveLengthZ = 2.0f;                // Z方向の波の細かさ
-constexpr float kSpeed = 1.5f;                // 波が流れる速さ
+constexpr float kAmplitude = 0.1f;                // さざ波の高さ
+constexpr float kWaveLengthX = 1.5f;
+constexpr float kWaveLengthZ = 2.0f;
+constexpr float kSpeed = 1.5f;
 
 void Wave::Init()
 {
@@ -22,7 +24,7 @@ void Wave::Init()
 
 	UINT index[kIndexNum];
 	int idx = 0;
-	for (int z = 0; z < kDiv; z++)
+	for (int z = 0; z < kLengthDiv; z++)
 	{
 		for (int x = 0; x < kDiv; x++)
 		{
@@ -67,7 +69,6 @@ void Wave::Init()
 	CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(), image.GetImageCount(), metadata, &m_Texture);
 	assert(m_Texture);
 
-	// カリング無効（両面表示）のラスタライザステート ※前回抜けていた部分
 	D3D11_RASTERIZER_DESC rasterizerDesc{};
 	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
 	rasterizerDesc.CullMode = D3D11_CULL_NONE;
@@ -98,22 +99,23 @@ void Wave::Update(double deltaTime)
 	Renderer::GetDeviceContext()->Map(m_VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 	VERTEX_3D* vertex = (VERTEX_3D*)msr.pData;
 
-	for (int z = 0; z <= kDiv; z++)
+	for (int z = 0; z <= kLengthDiv; z++)
 	{
 		for (int x = 0; x <= kDiv; x++)
 		{
 			int i = z * (kDiv + 1) + x;
 
-			float px = (x / (float)kDiv - 0.5f) * kWidth;
-			float pz = (z / (float)kDiv - 0.5f) * kDepth;
+			float worldZ = (z / (float)kLengthDiv - 0.5f) * kLength;
+			float localX = (x / (float)kDiv - 0.5f) * kWidth;
+			float worldX = localX + GetRiverCenterX(worldZ); // 川の蛇行に合わせてXをずらす
 
-			float py = sinf(px * kWaveLengthX + m_Time * kSpeed) * kAmplitude
-				+ sinf(pz * kWaveLengthZ + m_Time * kSpeed * 0.8f) * kAmplitude * 0.5f;
+			float ripple = sinf(worldX * kWaveLengthX + m_Time * kSpeed) * kAmplitude
+				+ sinf(worldZ * kWaveLengthZ + m_Time * kSpeed * 0.8f) * kAmplitude * 0.5f;
 
-			vertex[i].Position = XMFLOAT3(px, py, pz);
+			vertex[i].Position = XMFLOAT3(worldX, kWaterLevel + ripple, worldZ);
 			vertex[i].Normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
 			vertex[i].Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-			vertex[i].TexCoord = XMFLOAT2(x / (float)kDiv, z / (float)kDiv);
+			vertex[i].TexCoord = XMFLOAT2(x / (float)kDiv, z / (float)kLengthDiv * 10.0f);
 		}
 	}
 
@@ -144,7 +146,6 @@ void Wave::Draw()
 	UINT offset = 0;
 	Renderer::GetDeviceContext()->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);
 	Renderer::GetDeviceContext()->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
 	Renderer::GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	Renderer::GetDeviceContext()->DrawIndexed(kIndexNum, 0, 0);
