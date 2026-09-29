@@ -156,6 +156,9 @@
     <ClInclude Include="terrainHeight.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Car.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui.cpp">
@@ -273,6 +276,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="terrainHeight.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Car.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>

@@ -18,6 +18,7 @@
 #include "shadow.h"
 #include "meshField.h"
 #include "wave.h"
+#include "car.h"
 
 void Game::Init() {
 	
@@ -48,6 +49,7 @@ void Game::Init() {
 	//Manager::AddGameObject<Shadow>()->SetPosition({ 0.0f,0.01f,0.0f });
 
 	Manager::AddGameObject<Wave>();
+	Manager::AddGameObject<Car>();
 }
 void Game::Uninit() {
 

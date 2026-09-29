@@ -1,16 +1,18 @@
-//CPUƒXƒLƒjƒ“ƒO‚ÌƒAƒjƒ[ƒVƒ‡ƒ“ƒ‚ƒfƒ‹
+ï»¿//CPUï¿½Xï¿½Lï¿½jï¿½ï¿½ï¿½Oï¿½ÌƒAï¿½jï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½fï¿½ï¿½
 #include "main.h"
 #include "renderer.h"
 #include "animationModel.h"
 #include "DirectXTex.h"
+#include <shlwapi.h>
+#pragma comment(lib, "shlwapi.lib")
 
 void AnimationModel::Draw()
 {
-	// ƒvƒŠƒ~ƒeƒBƒuƒgƒ|ƒƒWİ’è
+	// ï¿½vï¿½ï¿½ï¿½~ï¿½eï¿½Bï¿½uï¿½gï¿½|ï¿½ï¿½ï¿½Wï¿½İ’ï¿½
 	Renderer::GetDeviceContext()->IASetPrimitiveTopology(
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// ƒ}ƒeƒŠƒAƒ‹İ’è
+	// ï¿½}ï¿½eï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½İ’ï¿½
 	MATERIAL material;
 	ZeroMemory(&material, sizeof(material));
 	material.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -23,7 +25,7 @@ void AnimationModel::Draw()
 		aiMesh* mesh = m_AiScene->mMeshes[m];
 
 
-		// ƒ}ƒeƒŠƒAƒ‹İ’è
+		// ï¿½}ï¿½eï¿½ï¿½ï¿½Aï¿½ï¿½ï¿½İ’ï¿½
 		aiString texture;
 		aiColor3D diffuse;
 		float opacity;
@@ -48,15 +50,15 @@ void AnimationModel::Draw()
 		Renderer::SetMaterial(material);
 
 
-		// ’¸“_ƒoƒbƒtƒ@İ’è
+		// ï¿½ï¿½ï¿½_ï¿½oï¿½bï¿½tï¿½@ï¿½İ’ï¿½
 		UINT stride = sizeof(VERTEX_3D);
 		UINT offset = 0;
 		Renderer::GetDeviceContext()->IASetVertexBuffers(0, 1, &m_VertexBuffer[m], &stride, &offset);
 
-		// ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@İ’è
+		// ï¿½Cï¿½ï¿½ï¿½fï¿½bï¿½Nï¿½Xï¿½oï¿½bï¿½tï¿½@ï¿½İ’ï¿½
 		Renderer::GetDeviceContext()->IASetIndexBuffer(m_IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
 
-		// ƒ|ƒŠƒSƒ“•`‰æ
+		// ï¿½|ï¿½ï¿½ï¿½Sï¿½ï¿½ï¿½`ï¿½ï¿½
 		Renderer::GetDeviceContext()->DrawIndexed(mesh->mNumFaces * 3, 0, 0);
 	}
 }
@@ -72,10 +74,10 @@ void AnimationModel::Load(const char* FileName)
 	m_IndexBuffer = new ID3D11Buffer * [m_AiScene->mNumMeshes];
 
 
-	//•ÏŒ`Œã’¸“_”z—ñ¶¬
+	//ï¿½ÏŒ`ï¿½ã’¸ï¿½_ï¿½zï¿½ñ¶ï¿½
 	m_DeformVertex = new std::vector<DEFORM_VERTEX>[m_AiScene->mNumMeshes];
 
-	//Ä‹A“I‚Éƒ{[ƒ“¶¬
+	//ï¿½Ä‹Aï¿½Iï¿½Éƒ{ï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	CreateBone(m_AiScene->mRootNode);
 
 
@@ -84,15 +86,26 @@ void AnimationModel::Load(const char* FileName)
 	{
 		aiMesh* mesh = m_AiScene->mMeshes[m];
 
-		// ’¸“_ƒoƒbƒtƒ@¶¬
+		// ï¿½ï¿½ï¿½_ï¿½oï¿½bï¿½tï¿½@ï¿½ï¿½ï¿½ï¿½
 		{
 			VERTEX_3D* vertex = new VERTEX_3D[mesh->mNumVertices];
 
 			for (unsigned int v = 0; v < mesh->mNumVertices; v++)
 			{
 				vertex[v].Position = XMFLOAT3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
-				vertex[v].Normal = XMFLOAT3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z);
-				vertex[v].TexCoord = XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
+
+				// æ³•ç·šãŒç„¡ã„ãƒ¡ãƒƒã‚·ãƒ¥ã‚‚ã‚ã‚‹ã®ã§ã‚¬ãƒ¼ãƒ‰ã™ã‚‹
+				if (mesh->mNormals)
+					vertex[v].Normal = XMFLOAT3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z);
+				else
+					vertex[v].Normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
+
+				// UV(ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™)ãŒç„¡ã„ãƒ¡ãƒƒã‚·ãƒ¥ã‚‚ã‚ã‚‹ã®ã§ã‚¬ãƒ¼ãƒ‰ã™ã‚‹ï¼ˆç„¡ã„ã¨0ç•ªç›®ã®è¦ç´ ãŒnullptrã«ãªã‚Šã‚¯ãƒ©ãƒƒã‚·ãƒ¥ã™ã‚‹ï¼‰
+				if (mesh->mTextureCoords[0])
+					vertex[v].TexCoord = XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
+				else
+					vertex[v].TexCoord = XMFLOAT2(0.0f, 0.0f);
+
 				vertex[v].Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 			}
 
@@ -114,7 +127,7 @@ void AnimationModel::Load(const char* FileName)
 		}
 
 
-		// ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@¶¬
+		// ï¿½Cï¿½ï¿½ï¿½fï¿½bï¿½Nï¿½Xï¿½oï¿½bï¿½tï¿½@ï¿½ï¿½ï¿½ï¿½
 		{
 			unsigned int* index = new unsigned int[mesh->mNumFaces * 3];
 
@@ -147,12 +160,12 @@ void AnimationModel::Load(const char* FileName)
 
 
 
-		//•ÏŒ`Œã’¸“_ƒf[ƒ^‰Šú‰»
+		//ï¿½ÏŒ`ï¿½ã’¸ï¿½_ï¿½fï¿½[ï¿½^ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		for (unsigned int v = 0; v < mesh->mNumVertices; v++)
 		{
 			DEFORM_VERTEX deformVertex;
 			deformVertex.Position = mesh->mVertices[v];
-			deformVertex.Normal = mesh->mNormals[v];
+			deformVertex.Normal = mesh->mNormals ? mesh->mNormals[v] : aiVector3D(0.0f, 1.0f, 0.0f);
 			deformVertex.BoneNum = 0;
 
 			for (unsigned int b = 0; b < 4; b++)
@@ -165,14 +178,14 @@ void AnimationModel::Load(const char* FileName)
 		}
 
 
-		//ƒ{[ƒ“ƒf[ƒ^‰Šú‰»
+		//ï¿½{ï¿½[ï¿½ï¿½ï¿½fï¿½[ï¿½^ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		for (unsigned int b = 0; b < mesh->mNumBones; b++)
 		{
 			aiBone* bone = mesh->mBones[b];
 
 			m_Bone[bone->mName.C_Str()].OffsetMatrix = bone->mOffsetMatrix;
 
-			//•ÏŒ`Œã’¸“_‚Éƒ{[ƒ“ƒf[ƒ^Ši”[
+			//ï¿½ÏŒ`ï¿½ã’¸ï¿½_ï¿½Éƒ{ï¿½[ï¿½ï¿½ï¿½fï¿½[ï¿½^ï¿½iï¿½[
 			for (unsigned int w = 0; w < bone->mNumWeights; w++)
 			{
 				aiVertexWeight weight = bone->mWeights[w];
@@ -190,14 +203,14 @@ void AnimationModel::Load(const char* FileName)
 
 
 
-	//ƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+	//ï¿½eï¿½Nï¿½Xï¿½`ï¿½ï¿½ï¿½Ç‚İï¿½ï¿½ï¿½
 	for (unsigned int i = 0; i < m_AiScene->mNumTextures; i++)
 	{
 		aiTexture* aitexture = m_AiScene->mTextures[i];
 
 		ID3D11ShaderResourceView* texture;
 
-		// ƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+		// ï¿½eï¿½Nï¿½Xï¿½`ï¿½ï¿½ï¿½Ç‚İï¿½ï¿½ï¿½
 		TexMetadata metadata;
 		ScratchImage image;
 		LoadFromWICMemory(aitexture->pcData, aitexture->mWidth, WIC_FLAGS_NONE, &metadata, image);
@@ -208,6 +221,45 @@ void AnimationModel::Load(const char* FileName)
 	}
 
 
+	// å¤–éƒ¨ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ•ã‚¡ã‚¤ãƒ«èª­è¾¼ï¼ˆFBXã«ãƒ†ã‚¯ã‚¹ãƒãƒ£ãŒåŸ‹ã‚è¾¼ã¾ã‚Œã¦ã„ãªã„å ´åˆã¯ã“ã¡ã‚‰ã‚’æ¢ã—ã«è¡Œãï¼‰
+	{
+		char dir[MAX_PATH];
+		strcpy(dir, FileName);
+		PathRemoveFileSpec(dir);
+
+		for (unsigned int mi = 0; mi < m_AiScene->mNumMaterials; mi++)
+		{
+			aiMaterial* aimaterial = m_AiScene->mMaterials[mi];
+			aiString texture;
+			aimaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texture);
+
+			if (texture.length == 0)
+				continue;
+
+			if (m_Texture.count(texture.data) > 0)
+				continue; // åŸ‹ã‚è¾¼ã¿ãƒ†ã‚¯ã‚¹ãƒãƒ£ã¨ã—ã¦æ—¢ã«èª­è¾¼æ¸ˆã¿
+
+			char path[MAX_PATH];
+			strcpy(path, dir);
+			strcat(path, "\\");
+			strcat(path, texture.data);
+
+			wchar_t wpath[MAX_PATH];
+			mbstowcs(wpath, path, MAX_PATH);
+
+			TexMetadata metadata;
+			ScratchImage image;
+			ID3D11ShaderResourceView* srv = nullptr;
+
+			if (SUCCEEDED(LoadFromWICFile(wpath, WIC_FLAGS_NONE, &metadata, image)))
+			{
+				CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(), image.GetImageCount(), metadata, &srv);
+			}
+
+			// èª­ã¿è¾¼ã‚ãªãã¦ã‚‚nullptrã¨ã—ã¦ç™»éŒ²ã—ã¦ãŠãï¼ˆDrawå´ã§æ¯å›nullptræŒ¿å…¥ã•ã‚Œã‚‹ã®ã‚’é˜²ãï¼‰
+			m_Texture[texture.data] = srv;
+		}
+	}
 
 }
 
@@ -252,7 +304,8 @@ void AnimationModel::Uninit()
 
 	for (std::pair<const std::string, ID3D11ShaderResourceView*> pair : m_Texture)
 	{
-		pair.second->Release();
+		if (pair.second)
+			pair.second->Release();
 	}
 
 
@@ -287,7 +340,7 @@ void AnimationModel::Update(const char* AnimationName1, int Frame1,
 
 	if (!m_Animation[AnimationName2]->HasAnimations())
 		return;
-	//ƒAƒjƒ[ƒVƒ‡ƒ“ƒf[ƒ^‚©‚çƒ{[ƒ“ƒ}ƒgƒŠƒNƒXZo
+	//ï¿½Aï¿½jï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½fï¿½[ï¿½^ï¿½ï¿½ï¿½ï¿½{ï¿½[ï¿½ï¿½ï¿½}ï¿½gï¿½ï¿½ï¿½Nï¿½Xï¿½Zï¿½o
 
 	aiAnimation* animation1 = m_Animation[AnimationName1]->mAnimations[0];
 	aiAnimation* animation2 = m_Animation[AnimationName2]->mAnimations[0];
@@ -338,20 +391,20 @@ void AnimationModel::Update(const char* AnimationName1, int Frame1,
 			f = Frame2 % nodeAnim2->mNumPositionKeys;
 			pos2 = nodeAnim2->mPositionKeys[f].mValue;
 		}
-		aiVector3D pos = pos1 * (1.0f - Blend) + pos2 * Blend;//üŒ`•âŠÔ
+		aiVector3D pos = pos1 * (1.0f - Blend) + pos2 * Blend;//ï¿½ï¿½ï¿½`ï¿½ï¿½ï¿½
 		aiQuaternion rot;
-		aiQuaternion::Interpolate(rot, rot1, rot2, Blend);//‹…–ÊüŒ`•âŠÔ
+		aiQuaternion::Interpolate(rot, rot1, rot2, Blend);//ï¿½ï¿½ï¿½Êï¿½ï¿½`ï¿½ï¿½ï¿½
 
 
 		bone->AnimationMatrix = aiMatrix4x4(aiVector3D(1.0f, 1.0f, 1.0f), rot, pos);
 	}
-	//Ä‹A“I‚Éƒ{[ƒ“ƒ}ƒgƒŠƒNƒX‚ğXV
+	//ï¿½Ä‹Aï¿½Iï¿½Éƒ{ï¿½[ï¿½ï¿½ï¿½}ï¿½gï¿½ï¿½ï¿½Nï¿½Xï¿½ï¿½ï¿½Xï¿½V
 
 	aiMatrix4x4 rootMatrix = aiMatrix4x4(aiVector3D(1.0f, 1.0f, 1.0f),
 		aiQuaternion(0, 0.0f, 0.0f), aiVector3D(0.0f, 0.0f, 0.0f));
 
 	UpdateBoneMatrix(m_AiScene->mRootNode, rootMatrix);
-	//’¸“_•ÏŠ·(CPUƒXƒLƒjƒ“ƒO)
+	//ï¿½ï¿½ï¿½_ï¿½ÏŠï¿½(CPUï¿½Xï¿½Lï¿½jï¿½ï¿½ï¿½O)
 
 	for (unsigned int m = 0; m < m_AiScene->mNumMeshes; m++)
 	{
@@ -384,8 +437,15 @@ void AnimationModel::Update(const char* AnimationName1, int Frame1,
 			outMatrix.b4 = 0.0f;
 			outMatrix.c4 = 0.0f;
 
-			deformVertex->Normal = mesh->mNormals[v];
-			deformVertex->Normal *= outMatrix;
+			if (mesh->mNormals)
+			{
+				deformVertex->Normal = mesh->mNormals[v];
+				deformVertex->Normal *= outMatrix;
+			}
+			else
+			{
+				deformVertex->Normal = aiVector3D(0.0f, 1.0f, 0.0f);
+			}
 
 			vertex[v].Position.x = deformVertex->Position.x;
 			vertex[v].Position.y = deformVertex->Position.y;
@@ -395,8 +455,17 @@ void AnimationModel::Update(const char* AnimationName1, int Frame1,
 			vertex[v].Normal.y = deformVertex->Normal.y;
 			vertex[v].Normal.z = deformVertex->Normal.z;
 
-			vertex[v].TexCoord.x = mesh->mTextureCoords[0][v].x;
-			vertex[v].TexCoord.y = mesh->mTextureCoords[0][v].y;
+			// UV(ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™)ãŒç„¡ã„ãƒ¡ãƒƒã‚·ãƒ¥ã‚‚ã‚ã‚‹ã®ã§ã‚¬ãƒ¼ãƒ‰ã™ã‚‹
+			if (mesh->mTextureCoords[0])
+			{
+				vertex[v].TexCoord.x = mesh->mTextureCoords[0][v].x;
+				vertex[v].TexCoord.y = mesh->mTextureCoords[0][v].y;
+			}
+			else
+			{
+				vertex[v].TexCoord.x = 0.0f;
+				vertex[v].TexCoord.y = 0.0f;
+			}
 
 			vertex[v].Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		}
